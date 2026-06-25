@@ -6,6 +6,8 @@ import './App.css'
 
 function App() {
   const [isConnected, setIsConnected] = useState(provider.wsconnected);
+  const [consoleOutput, setConsoleOutput] = useState('Waiting for execution...');
+  const [isExecuting, setIsExecuting] = useState(false);
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -28,7 +30,34 @@ function App() {
     // Bind the Monaco Editor's text model to the Yjs shared text.
     // This automagically syncs local keystrokes to the network and vice versa!
     new MonacoBinding(yText, editor.getModel(), new Set([editor]), provider.awareness);
+
+    // Provide default C++ boilerplate if the document is empty
+    if (yText.length === 0) {
+      yText.insert(0, '#include <iostream>\n\nint main() {\n    std::cout << "Hello, OmniPad!" << std::endl;\n    return 0;\n}');
+    }
   }
+
+  const runCode = async () => {
+    if (!editorRef.current) return;
+    const code = editorRef.current.getValue();
+    
+    setIsExecuting(true);
+    setConsoleOutput('Compiling and executing in Docker...');
+
+    try {
+      const response = await fetch('http://localhost:3000/api/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      const data = await response.json();
+      setConsoleOutput(data.output);
+    } catch (error) {
+      setConsoleOutput(`Error: ${error.message}\nMake sure the backend server is running.`);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#1e1e1e] text-white">
@@ -40,8 +69,14 @@ function App() {
             <span className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
             <span className="text-sm text-gray-400">{isConnected ? 'Connected' : 'Disconnected'}</span>
           </div>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
-            Run Code
+          <button 
+            onClick={runCode}
+            disabled={isExecuting}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
+              isExecuting ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {isExecuting ? 'Running...' : 'Run Code'}
           </button>
         </div>
       </header>
@@ -52,7 +87,7 @@ function App() {
         <div className="flex-1 border-r border-[#333333]">
           <Editor
             height="100%"
-            defaultLanguage="javascript"
+            defaultLanguage="cpp"
             theme="vs-dark"
             onMount={handleEditorDidMount}
             options={{
@@ -71,8 +106,8 @@ function App() {
           <div className="px-4 py-3 border-b border-[#333333] text-sm font-medium text-gray-300">
             Console Output
           </div>
-          <div className="flex-1 p-4 font-mono text-sm text-gray-400">
-            Waiting for execution...
+          <div className="flex-1 p-4 font-mono text-sm text-gray-400 whitespace-pre-wrap overflow-y-auto">
+            {consoleOutput}
           </div>
         </div>
       </main>
