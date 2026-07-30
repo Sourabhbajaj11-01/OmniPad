@@ -1,97 +1,55 @@
-const Docker = require('dockerode');
-const stream = require('stream');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-const docker = new Docker();
+/**
+ * The API Execution Orchestrator
+ * 
+ * Replaces our old Docker-based sandbox with a cloud-based API request.
+ * We use the JDoodle Compiler API (https://www.jdoodle.com/compiler-api)
+ */
 
 async function executeCpp(code) {
-  return new Promise(async (resolve) => {
-    // 1. Create a unique temporary directory for this execution
-    const executionId = crypto.randomUUID();
-    const tempDirPath = path.join(__dirname, 'temp', executionId);
-    
-    try {
-      fs.mkdirSync(tempDirPath, { recursive: true });
-      fs.writeFileSync(path.join(tempDirPath, 'main.cpp'), code);
-    } catch (err) {
-      return resolve({ success: false, output: `File System Error: ${err.message}` });
+  try {
+    const clientId = process.env.JDOODLE_CLIENT_ID;
+    const clientSecret = process.env.JDOODLE_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      return { success: false, output: `Configuration Error: JDoodle API keys are missing from .env` };
     }
 
-    // 2. We compile and run the code from the mounted directory
-    // We bind the tempDirPath on the host to /app inside the container
-    const command = ['sh', '-c', 'cd /app && g++ main.cpp -o a.out && ./a.out'];
-
-    let output = '';
-    let isKilledByLimit = false;
-    let runningContainer = null;
-    const MAX_OUTPUT_LENGTH = 10000; // Limit output to 10k characters
-    
-    const outStream = new stream.PassThrough();
-    outStream.on('data', chunk => {
-      if (isKilledByLimit) return;
-      
-      output += chunk.toString('utf8');
-      
-      // If the user's program is spamming output (e.g. while(true) cout << "spam";)
-      // we need to kill it early so it doesn't crash our backend or their browser!
-      if (output.length > MAX_OUTPUT_LENGTH) {
-        isKilledByLimit = true;
-        output = output.substring(0, MAX_OUTPUT_LENGTH) + '\n\n[Error] Output exceeded maximum length (10,000 characters). Container forcefully killed.';
-        if (runningContainer) {
-          runningContainer.kill().catch(() => {});
-        }
-      }
+    const response = await fetch('https://api.jdoodle.com/v1/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: clientId,
+        clientSecret: clientSecret,
+        script: code,
+        language: 'cpp17', // Modern C++ 17 support
+        versionIndex: '1'  // Matches the g++ version required for cpp17
+      })
     });
 
-    docker.run(
-      'gcc:latest',
-      command,
-      outStream,
-      {
-        Tty: false,
-        HostConfig: {
-          Memory: 256 * 1024 * 1024,
-          MemorySwap: 256 * 1024 * 1024,
-          // Bind the Windows temp directory to /app in the container
-          Binds: [`${tempDirPath}:/app`]
-        }
-      },
-      async function (err, data, container) {
-        // Cleanup the container and the temp folder
-        if (container) {
-          try { await container.remove({ force: true }); } catch (e) {}
-        }
-        try { fs.rmSync(tempDirPath, { recursive: true, force: true }); } catch (e) {}
+    const data = await response.json();
 
-        if (err) {
-          return resolve({ success: false, output: `Docker Error: ${err.message}` });
-        }
-        
-        const cleanOutput = output.replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, '').trim();
+    if (data.error) {
+      // The API returned an error message (e.g. rate limit, invalid request)
+      return { success: false, output: `JDoodle Error: ${data.error}` };
+    }
 
-        resolve({
-          success: data.StatusCode === 0 && !isKilledByLimit,
-          output: cleanOutput || (data.StatusCode === 0 ? 'Execution completed with no output.' : 'Execution failed.'),
-        });
-      }
-    ).on('container', function (container) {
-      runningContainer = container;
-      // 3. Strict 2-second timeout to prevent infinite loops
-      setTimeout(async () => {
-        try {
-          const containerInfo = await container.inspect();
-          if (containerInfo.State.Running) {
-            await container.kill();
-            output += '\n\n[Error] Execution timed out after 2 seconds. Infinite loop prevented!';
-          }
-        } catch (e) {
-          // Container already finished
-        }
-      }, 2000);
-    });
-  });
+    if (data.output === undefined) {
+      return { success: false, output: `API Error: Unexpected response format.` };
+    }
+
+    const isSuccess = data.statusCode === 200;
+    let finalOutput = data.output.trim();
+
+    // Sometimes JDoodle puts compilation errors right into 'output' with a 200 OK status
+    // but actual execution failures might have different status codes.
+    return {
+      success: isSuccess,
+      output: finalOutput || 'Execution completed with no output.'
+    };
+
+  } catch (err) {
+    return { success: false, output: `Network Error: Could not connect to JDoodle API. (${err.message})` };
+  }
 }
 
 module.exports = { executeCpp };

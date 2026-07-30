@@ -42,7 +42,7 @@ function App() {
     const code = editorRef.current.getValue();
     
     setIsExecuting(true);
-    setConsoleOutput('Compiling and executing in Docker...');
+    setConsoleOutput('Compiling and executing in Cloud Sandbox...');
 
     try {
       const response = await fetch('http://localhost:3000/api/execute', {
