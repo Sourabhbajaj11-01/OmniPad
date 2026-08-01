@@ -30,7 +30,7 @@ function setupYjsWebsockets(server) {
         if (isGhostTyping) return;
         
         const content = yText.toString();
-        const triggerStr = '// ai: ';
+        const triggerStr = '//ai: ';
         const triggerIndex = content.lastIndexOf(triggerStr);
         
         // Check if the trigger string exists
