@@ -45,7 +45,8 @@ function App() {
     setConsoleOutput('Compiling and executing in Cloud Sandbox...');
 
     try {
-      const response = await fetch('http://localhost:3000/api/execute', {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+      const response = await fetch(`${backendUrl}/api/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })

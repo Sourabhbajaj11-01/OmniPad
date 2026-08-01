@@ -12,8 +12,9 @@ const indexeddbProvider = new IndexeddbPersistence('omnipad-offline-store', doc)
 
 // 3. Connect to our backend WebSocket server
 // 'omnipad-demo-room' must match the docName we configured on the server
+const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000';
 const provider = new WebsocketProvider(
-  'ws://localhost:3000',
+  wsUrl,
   'omnipad-demo-room',
   doc
 );
