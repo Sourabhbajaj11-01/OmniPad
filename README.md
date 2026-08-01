@@ -17,6 +17,33 @@
 
 OmniPad is a high-performance, real-time collaborative code editor built for the modern web. It features a completely headless "Ghost AI" client, sub-millisecond keystroke synchronization, offline persistence, and a serverless C++ execution engine.
 
+## Architecture
+
+```text
+┌─────────────────────────┐
+│ React Frontend          │
+│ Vite + Monaco Editor    │
+│ :5173                   │
+└─────────────────────────┘
+      │           │
+      │ WS (Yjs)  │ POST /api/execute
+      │           │
+      ▼           ▼
+┌─────────────────────────┐
+│ Node.js Backend         │
+│ Express + WebSockets    │
+│ :3000                   │
+└─────────────────────────┘
+      │           │
+      │ AI Prompt │ POST /v1/execute
+      │ (Ghost)   │ (JDoodle)
+      ▼           ▼
+┌───────────────┐ ┌───────────────┐
+│ AI Engine     │ │ Cloud Sandbox │
+│ (Mock/GPT-4o) │ │ C++ Compiler  │
+└───────────────┘ └───────────────┘
+```
+
 ## 🌟 Key Features
 
 - **Real-Time Collaboration:** Powered by Conflict-free Replicated Data Types (CRDTs) via `Yjs` and WebSockets, allowing multiple users to edit the same file simultaneously without race conditions.
