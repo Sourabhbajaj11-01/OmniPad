@@ -94,6 +94,27 @@ npm run dev
 # Vite runs on http://localhost:5173
 ```
 
+### ❄️ Cold Start Notice
+
+> Render's free tier automatically suspends inactive services after 15 minutes of inactivity.
+
+- First connection after inactivity: **30-60 seconds** startup delay
+- Subsequent interactions: **Instantaneous response**
+
+This affects only the very first WebSocket connection used to wake the backend service.
+
+---
+
+## 🚀 Deployment
+
+| Component | Platform / Service |
+|-----------|--------------------|
+| Frontend  | Vercel |
+| Backend   | Render |
+| Execution | JDoodle API |
+
+---
+
 ## 🔮 Future Architecture Roadmap
 
 While OmniPad is fully functional, the architecture is designed to support heavy, production-grade DevOps and AI concepts in the future:
