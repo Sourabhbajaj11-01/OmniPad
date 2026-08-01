@@ -1,4 +1,8 @@
-# OmniPad 🚀
+# OmniPad
+
+### Real-Time Collaborative Code Editor & AI Sandbox
+
+**Collaborate · Execute · Create**
 
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -7,7 +11,11 @@
 [![Express.js](https://img.shields.io/badge/Express.js-5.2-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES2024-F7DF1E?style=flat-square&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-OmniPad is a high-performance, real-time collaborative code editor built for modern the web. It features a completely headless "Ghost AI" client, sub-millisecond keystroke synchronization, offline persistence, and a serverless C++ execution engine.
+---
+
+## Overview
+
+OmniPad is a high-performance, real-time collaborative code editor built for the modern web. It features a completely headless "Ghost AI" client, sub-millisecond keystroke synchronization, offline persistence, and a serverless C++ execution engine.
 
 ## 🌟 Key Features
 
